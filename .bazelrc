@@ -1,0 +1,3 @@
+build --copt="-DGLOG_CUSTOM_PREFIX_SUPPORT"
+build --copt="-DNDEBUG"
+build --cxxopt="-std=c++17"
