@@ -6,5 +6,5 @@ define hook-stop
 x/6i $pc
 end
 
-b respond
+b main
 c
