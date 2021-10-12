@@ -1,8 +1,13 @@
-Shttps - Simple HTTP/1.1 server (It has nothing to do with https or shttp protocol hah)
+Shttps - Simple HTTP/1.1 server (It has nothing to do with https or shttp protocol)
 
 About:
-It is very simple HTTP server which can be used to serve static files (that is .html files or some blobs).
-For now server can send few error codes if something goes wrong, those are:
+It is very simple HTTP server which can be used to serve static files (that is .html files or some blob's).
+It supports 2 methods:
+- GET
+- HEAD
+The POST method is not supported because it would serve no purpose due to lack of integration with php or any other backend technology.
+
+For now server can respond with few error codes which are are:
 - 200 OK
 - 400 Bad Request
 - 404 Not Found
@@ -18,7 +23,7 @@ For now server can send few error codes if something goes wrong, those are:
 * - these are downloaded by bazel but I thought it's worth to mention about them.
 
 2. Build:
-- git clone <url> && cd Shttps
+- git clone https://github.com/qqwertyui/Simple-Http-Server.git && cd Shttps
 - bazel build //:shttps
 
 After that, binary will be placed in {WORKING_DIRECTORY}/bazel-bin/shttps
@@ -26,7 +31,8 @@ You can alternatively run it using bazel:
 - bazel run //:shttps
 
 3. Usage:
-Avalible switches are:
+(Example usage is shown in example.sh)
+Possible switches are:
 - document_root <path> - path which will server as a document root (base directory for your files) [default=./]
 - port <number> - port on which server will work [default=80]
 - interface <iface> - interface on which server will be exposed (e.g. lo, eth0, wlan0) [default=all]
