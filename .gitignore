@@ -1,1 +1,5 @@
 build/
+bazel-bin/
+bazel-Shttps/
+bazel-out/
+bazel-testlogs/
