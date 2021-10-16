@@ -15,7 +15,8 @@ private:
   void main();
   void terminate();
   void error(Status_Code code, std::string method);
-  void respond(std::string filename, std::string method, Status_Code code = Response::Code::OK);
+  void respond(std::string filename, std::string method,
+               Status_Code code = Response::Code::OK);
 
   Http *srv;
   Peer_info *pi;

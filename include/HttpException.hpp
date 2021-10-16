@@ -6,11 +6,7 @@
 
 class HttpException : public std::exception {
 public:
-  enum ErrorLevel {
-    LOW = 0,
-    MEDIUM = 1,
-    HIGH = 2
-  };
+  enum ErrorLevel { LOW = 0, MEDIUM = 1, HIGH = 2 };
 
   HttpException(const char *what, ErrorLevel level);
   ErrorLevel get_level() const;

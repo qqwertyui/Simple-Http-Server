@@ -2,8 +2,8 @@
 #define HTTPHEADER_HPP
 
 #include <string>
-#include <utility>
 #include <string_view>
+#include <utility>
 
 class HttpHeader {
 public:
@@ -16,10 +16,7 @@ public:
 
 private:
   static constexpr std::string_view SEPARATOR = ": ";
-  enum {
-    KEY = 0,
-    VALUE = 1
-  };
+  enum { KEY = 0, VALUE = 1 };
 
   std::pair<std::string, std::string> entry;
   std::string header;

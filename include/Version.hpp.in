@@ -2,7 +2,7 @@
 // For now it is not used at all (but will be).
 
 namespace Version {
-    constexpr int MAJOR = @Shttps_VERSION_MAJOR@;
-    constexpr int MINOR = @Shttps_VERSION_MINOR@;
-    constexpr const char *STRING = "@Shttps_VERSION_MAJOR@.@Shttps_VERSION_MINOR@";
-}
+constexpr int MAJOR = @Shttps_VERSION_MAJOR @;
+constexpr int MINOR = @Shttps_VERSION_MINOR @;
+constexpr const char *STRING = "@Shttps_VERSION_MAJOR@.@Shttps_VERSION_MINOR@";
+} // namespace Version

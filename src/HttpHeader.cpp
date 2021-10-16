@@ -13,10 +13,6 @@ std::string HttpHeader::get_value() {
   return std::get<HttpHeader::VALUE>(this->entry);
 }
 
-std::string HttpHeader::get_all() {
-  return this->header;
-}
+std::string HttpHeader::get_all() { return this->header; }
 
-unsigned int HttpHeader::get_size() {
-  return this->header.size();
-}
+unsigned int HttpHeader::get_size() { return this->header.size(); }

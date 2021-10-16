@@ -1,9 +1,9 @@
 #ifndef MIME_HPP
 #define MIME_HPP
 
-#include <string>
 #include <array>
 #include <map>
+#include <string>
 
 class Mime {
 public:

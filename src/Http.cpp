@@ -1,44 +1,43 @@
 #include "Http.hpp"
+#include "ConnectionHandler.hpp"
+#include "HttpException.hpp"
 #include "Mime.hpp"
 #include "Utils.hpp"
-#include "HttpException.hpp"
-#include "ConnectionHandler.hpp"
 
+#include <errno.h>
 #include <linux/limits.h>
-#include <unistd.h>
-#include <sys/types.h>
 #include <sys/socket.h>
 #include <sys/stat.h>
-#include <errno.h>
+#include <sys/types.h>
+#include <unistd.h>
 
-#include <cstring>
+#include <algorithm>
+#include <cctype>
 #include <cstdlib>
+#include <cstring>
+#include <fstream>
 #include <iostream>
 #include <memory>
 #include <sstream>
-#include <fstream>
-#include <cctype>
-#include <algorithm>
 #include <thread>
+#include <numeric>
 
 #include <glog/logging.h>
 
-HttpHeader* Base_http_connection::get_header_by_key(std::string key) {
-  for(HttpHeader *h : this->headers) {
-    if(key.compare(h->get_key()) == 0) {
+HttpHeader *Base_http_connection::get_header_by_key(std::string key) {
+  for (HttpHeader *h : this->headers) {
+    if (key.compare(h->get_key()) == 0) {
       return h;
     }
   }
   return nullptr;
 }
 
-std::vector<HttpHeader*>& Base_http_connection::get_headers() {
+std::vector<HttpHeader *> &Base_http_connection::get_headers() {
   return this->headers;
 }
 
-std::vector<std::byte>& Base_http_connection::get_body() {
-  return this->body;
-}
+std::vector<std::byte> &Base_http_connection::get_body() { return this->body; }
 
 void Base_http_connection::add_header(std::string key, std::string value) {
   this->headers.push_back(new HttpHeader(key, value));
@@ -53,13 +52,13 @@ Request::Request(int pfd) {
 
   std::byte buffer;
   int status = 0;
-  while((status = recv(pfd, &buffer, sizeof(std::byte), 0)) != 0) {
-    if(status == -1) {
-      throw HttpException("Socket error / Connection timed out", 
-        HttpException::ErrorLevel::MEDIUM);
+  while ((status = recv(pfd, &buffer, sizeof(std::byte), 0)) != 0) {
+    if (status == -1) {
+      throw HttpException("Socket error / Connection timed out",
+                          HttpException::ErrorLevel::MEDIUM);
     }
     raw.push_back(buffer);
-    if(Http::is_end(raw) == true) {
+    if (Http::is_end(raw) == true) {
       break;
     }
   }
@@ -67,49 +66,51 @@ Request::Request(int pfd) {
 }
 
 void Request::parse(std::vector<std::byte> &raw) {
-  if(raw.size() == 0) {
+  if (raw.size() == 0) {
     throw HttpException("Empty request", HttpException::ErrorLevel::LOW);
   }
-  char *begin = (char*)raw.data();
+  char *begin = (char *)raw.data();
   char *end = strstr(begin, Http::CRLF);
   std::string status(begin, end);
 
   std::vector<std::string> tokens = Utils::split(status, ' ');
-  if(tokens.size() < 3) {
+  if (tokens.size() < 3) {
     throw HttpException("Invalid status line", HttpException::ErrorLevel::LOW);
   }
   this->status.method = tokens[0];
   this->status.path = tokens[1];
   this->status.version = tokens[2];
-  
+
   bool valid_method = false;
-  for(std::string method : Http::AVALIBLE_METHODS) {
-    if(tokens[0].compare(method) == 0) {
+  for (std::string method : Http::AVALIBLE_METHODS) {
+    if (tokens[0].compare(method) == 0) {
       valid_method = true;
       break;
     }
   }
-  if(valid_method == false) {
+  if (valid_method == false) {
     throw HttpException("Invalid method", HttpException::ErrorLevel::LOW);
   }
 
-  if(tokens[2].size() > 4) {
-    std::string prefix = tokens[2].substr(0,5); // 0 -> HTTP/ <- 5
-    if(prefix.compare("HTTP/") != 0) {
-      throw HttpException("Invalid HTTP version", HttpException::ErrorLevel::LOW);
+  if (tokens[2].size() > 4) {
+    std::string prefix = tokens[2].substr(0, 5); // 0 -> HTTP/ <- 5
+    if (prefix.compare("HTTP/") != 0) {
+      throw HttpException("Invalid HTTP version",
+                          HttpException::ErrorLevel::LOW);
     }
   }
 
   char *line_beg = end + std::strlen(Http::CRLF);
   char *line_end = nullptr;
-  while((line_end = strstr(line_beg, Http::CRLF)) != nullptr) {
-    if(line_beg == line_end) {
+  while ((line_end = strstr(line_beg, Http::CRLF)) != nullptr) {
+    if (line_beg == line_end) {
       break;
     }
     std::string current(line_beg, line_end);
-    current.erase(std::remove_if(current.begin(), current.end(), isspace), current.end());
+    current.erase(std::remove_if(current.begin(), current.end(), isspace),
+                  current.end());
     std::string::size_type length = current.find_first_of(':');
-    if(length == std::string::npos) {
+    if (length == std::string::npos) {
       throw HttpException("Invalid header", HttpException::ErrorLevel::LOW);
     }
 
@@ -120,27 +121,18 @@ void Request::parse(std::vector<std::byte> &raw) {
   }
 }
 
-std::string Request::get_method() {
-  return this->status.method;
-}
+std::string Request::get_method() { return this->status.method; }
 
-std::string Request::get_path() {
-  return this->status.path;
-}
+std::string Request::get_path() { return this->status.path; }
 
-std::string Request::get_version() {
-  return this->status.version;
-}
+std::string Request::get_version() { return this->status.version; }
 
 std::string Http::sanitize_path(std::string path) {
-  std::array<std::string, 2> dangerous = {
-    "../",
-    "..\\"
-  };
-  for(std::string current : dangerous) {
+  const std::array<std::string, 2> dangerous = {"../", "..\\"};
+  for (std::string current : dangerous) {
     std::string::size_type current_length = current.size();
-    std::string::size_type offset = std::string::npos;
-    while((offset = path.find(current)) != std::string::npos) {
+    std::string::size_type offset;
+    while ((offset = path.find(current)) != std::string::npos) {
       VLOG(1) << "Path travelsal detected: [DOCUMENT_ROOT]" << path;
       path.erase(offset, current_length);
     }
@@ -155,9 +147,9 @@ std::string Http::add_root(std::string path) {
 
 bool Http::is_end(std::vector<std::byte> &data) {
   constexpr int CRLF_LONG_LENGTH = std::strlen(Http::CRLF_LONG);
-  if(data.size() >= CRLF_LONG_LENGTH) {
-    char *end = (char*)&data[data.size()-CRLF_LONG_LENGTH];
-    if(memcmp(end, Http::CRLF_LONG, CRLF_LONG_LENGTH) == 0) {
+  if (data.size() >= CRLF_LONG_LENGTH) {
+    char *end = (char *)&data[data.size() - CRLF_LONG_LENGTH];
+    if (memcmp(end, Http::CRLF_LONG, CRLF_LONG_LENGTH) == 0) {
       return true;
     }
   }
@@ -165,8 +157,8 @@ bool Http::is_end(std::vector<std::byte> &data) {
 }
 
 bool Http::is_supported_method(std::string method) {
-  for(const char *current : Http::SUPPORTED_METHODS) {
-    if(method.compare(current) == 0) {
+  for (const char *current : Http::SUPPORTED_METHODS) {
+    if (method.compare(current) == 0) {
       return true;
     }
   }
@@ -178,9 +170,9 @@ bool Http::is_supported_version(std::string version) {
 }
 
 void Http::erase_worker(unsigned int fd) {
-  for(std::vector<ConnectionHandler*>::iterator i = this->workers.begin(); 
-    i!=this->workers.end(); i++) {
-    if((*i)->get_fd() == fd) {
+  for (std::vector<ConnectionHandler *>::iterator i = this->workers.begin();
+       i != this->workers.end(); ++i) {
+    if ((*i)->get_fd() == fd) {
       delete *i;
       this->workers.erase(i);
       return;
@@ -195,19 +187,19 @@ bool Http::resource_exist(std::string path) {
   memset(&st, 0, sizeof(struct stat));
   stat(path.c_str(), &st);
   // check if file is directory, link or whatever (not regular file)
-  if((st.st_mode & S_IFMT) == S_IFREG) {
+  if ((st.st_mode & S_IFMT) == S_IFREG) {
     std::ifstream file(path, std::ifstream::binary);
     status = (file.good() == true) ? true : false;
-    if(status) { 
-      file.close(); 
+    if (status) {
+      file.close();
     }
   }
   return status;
 }
 
 std::string Http::expand_path(std::string path) {
-  char last_character = path[path.size()-1];
-  if(last_character == '/') {
+  char last_character = path[path.size() - 1];
+  if (last_character == '/') {
     path.append("index.html");
   }
   return path;
@@ -225,34 +217,31 @@ Response::Response(Status_Code code) {
 
 std::string Response::get_status() {
   return std::string(this->status.version)
-    .append(" ")
-    .append(this->status.message);
+      .append(" ")
+      .append(this->status.message);
 }
 
 void Response::set_code(const Status_Code &code) {
   this->code = code;
-  
-  std::string message = std::to_string(std::get<0>(this->code))
-    .append(" ")
-    .append(std::get<Response::Code::VALUE>(this->code));
+
+  std::string message =
+      std::to_string(std::get<0>(this->code))
+          .append(" ")
+          .append(std::get<Response::Code::VALUE>(this->code));
   this->status.message = message;
 }
 
-void Response::set_body(std::vector<std::byte> &data) {
-  this->body = data;
-}
+void Response::set_body(const std::vector<std::byte> &data) { this->body = data; }
 
-void Response::set_body(std::vector<std::byte> &&data) {
-  this->body = data;
-}
+void Response::set_body(std::vector<std::byte> &&data) { this->body = data; }
 
 std::vector<std::byte> Response::get_bytearray() {
   constexpr unsigned int CRLF_SIZE = std::strlen(Http::CRLF);
-  
-  unsigned int total_size = this->get_status().size() + CRLF_SIZE;
-  for(HttpHeader *h : this->headers) {
-    total_size += h->get_size() + CRLF_SIZE;
-  }
+
+  unsigned int total_size = std::accumulate(this->headers.begin(), this->headers.end(), 
+  this->get_status().size() + CRLF_SIZE, [](int result, HttpHeader *h){
+    return result+h->get_size()+CRLF_SIZE;
+  });
   total_size += CRLF_SIZE + body.size();
   std::vector<std::byte> result(total_size);
 
@@ -260,45 +249,44 @@ std::vector<std::byte> Response::get_bytearray() {
   std::byte *ptr = result.data();
   unsigned int length = this->get_status().size();
   memcpy(ptr, this->get_status().c_str(), length);
-  memcpy(ptr+length, Http::CRLF, CRLF_SIZE);
+  memcpy(ptr + length, Http::CRLF, CRLF_SIZE);
   ptr += length + CRLF_SIZE;
 
   // copy headers
-  for(HttpHeader *h : this->headers) {
+  for (HttpHeader *h : this->headers) {
     length = h->get_size();
     memcpy(ptr, h->get_all().c_str(), length);
-    memcpy(ptr+length, Http::CRLF, CRLF_SIZE);
+    memcpy(ptr + length, Http::CRLF, CRLF_SIZE);
     ptr += length + CRLF_SIZE;
   }
   memcpy(ptr, Http::CRLF, CRLF_SIZE);
   ptr += CRLF_SIZE;
-  
-  //copy body
+
+  // copy body
   length = this->body.size();
   memcpy(ptr, this->body.data(), length);
   return result;
 }
 
-Http::Http(std::string document_root) 
-  : document_root(document_root) { 
-}
+Http::Http(const std::string &document_root) : document_root(document_root) {}
 
 std::vector<std::byte> Http::get_error_page(Status_Code code) {
   std::vector<std::byte> page;
   std::string error_message = std::get<Response::Code::VALUE>(code);
-  unsigned int template_size = Http::error_template.size() - 2; // strlen("%s") == 2
+  unsigned int template_size =
+      Http::error_template.size() - 2; // strlen("%s") == 2
   unsigned int error_message_size = error_message.size();
   unsigned int total_size = template_size + error_message_size;
-  
+
   page.resize(total_size);
-  snprintf((char*)page.data(), total_size + 1, // + 1 for null character
-    Http::error_template.data(), error_message.c_str());
+  snprintf((char *)page.data(), total_size + 1, // + 1 for null character
+           Http::error_template.data(), error_message.c_str());
   return page;
 }
 
 void Http::send(const int fd, std::vector<std::byte> &bytes) {
   int status = ::send(fd, bytes.data(), bytes.size(), 0);
-  if(status == -1) {
+  if (status == -1) {
     throw HttpException(strerror(errno), HttpException::ErrorLevel::LOW);
   }
 }
