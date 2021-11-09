@@ -43,8 +43,10 @@ void Base_http_connection::add_header(std::string key, std::string value) {
   this->headers.push_back(new HttpHeader(key, value));
 }
 
-void Base_http_connection::add_header(HttpHeader *hdr) {
-  this->headers.push_back(hdr);
+Base_http_connection::~Base_http_connection() {
+  for(HttpHeader *h : this->headers) {
+    delete h;
+  }
 }
 
 Request::Request(int pfd) {
@@ -169,7 +171,7 @@ bool Http::is_supported_version(std::string version) {
   return (version.compare(Http::SUPPORTED_VERSION) == 0) ? true : false;
 }
 
-void Http::erase_worker(unsigned int fd) {
+void Http::erase_worker(int fd) {
   for (std::vector<ConnectionHandler *>::iterator i = this->workers.begin();
        i != this->workers.end(); ++i) {
     if ((*i)->get_fd() == fd) {
@@ -276,11 +278,12 @@ std::vector<std::byte> Http::get_error_page(Status_Code code) {
   unsigned int template_size =
       Http::error_template.size() - 2; // strlen("%s") == 2
   unsigned int error_message_size = error_message.size();
-  unsigned int total_size = template_size + error_message_size;
+  unsigned int total_size = template_size + error_message_size + 1;
 
   page.resize(total_size);
-  snprintf((char *)page.data(), total_size + 1, // + 1 for null character
+  snprintf((char *)page.data(), total_size,
            Http::error_template.data(), error_message.c_str());
+  page.pop_back();
   return page;
 }
 

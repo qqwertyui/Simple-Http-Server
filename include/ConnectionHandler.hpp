@@ -4,12 +4,13 @@
 #include "Http.hpp"
 #include "Socket.hpp"
 #include <string>
+#include <memory>
 
 class ConnectionHandler {
 public:
   ConnectionHandler(Peer_info *pi, Http *srv);
   void main_wrapper();
-  unsigned int get_fd() const;
+  int get_fd() const;
 
 private:
   void main();
@@ -18,8 +19,8 @@ private:
   void respond(std::string filename, std::string method,
                Status_Code code = Response::Code::OK);
 
-  Http *srv;
-  Peer_info *pi;
+  Http *srv = nullptr;
+  std::unique_ptr<Peer_info> pi = nullptr;
 };
 
 #endif

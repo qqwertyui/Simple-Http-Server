@@ -7,6 +7,7 @@
 #include <memory>
 #include <string_view>
 #include <vector>
+#include <cstdio>
 
 #include "HttpHeader.hpp"
 
@@ -17,8 +18,8 @@ class Peer_info;
 class Base_http_connection {
 public:
   Base_http_connection() = default;
+  virtual ~Base_http_connection();
 
-  void add_header(HttpHeader *hdr);
   void add_header(std::string key, std::string value);
   HttpHeader *get_header_by_key(std::string key);
   std::vector<HttpHeader *> &get_headers();
@@ -130,7 +131,7 @@ private:
                Status_Code code);
   void error(const int fd, Status_Code code, std::string method);
 
-  void erase_worker(unsigned int fd);
+  void erase_worker(int fd);
   
   std::vector<ConnectionHandler *> workers;
   std::string document_root;

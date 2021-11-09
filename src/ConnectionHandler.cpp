@@ -10,7 +10,7 @@
 ConnectionHandler::ConnectionHandler(Peer_info *pi, Http *srv)
     : pi(pi), srv(srv) {}
 
-unsigned int ConnectionHandler::get_fd() const { return this->pi->get_fd(); }
+int ConnectionHandler::get_fd() const { return this->pi->get_fd(); }
 
 void ConnectionHandler::main_wrapper() {
   try {
@@ -18,15 +18,14 @@ void ConnectionHandler::main_wrapper() {
   } catch (const HttpException &e) {
     VLOG(1) << e.what();
   }
-  int fd = this->pi->get_fd();
-  delete this->pi;
+  int fd = this->get_fd();
   srv->erase_worker(fd);
 }
 
 void ConnectionHandler::main() {
   std::unique_ptr<Request> request = nullptr;
   try {
-    request = std::make_unique<Request>(this->pi->get_fd());
+    request = std::make_unique<Request>(this->get_fd());
   } catch (const HttpException &e) {
     this->error(Response::Code::BAD_REQUEST, "GET");
     return;
@@ -63,7 +62,7 @@ void ConnectionHandler::respond(std::string filename, std::string method,
   std::unique_ptr<Response> response = std::make_unique<Response>();
   response->set_code(code);
 
-  std::vector<std::byte> body = Http::get_error_page(code);
+  std::vector<std::byte> body;
 
   if (code == Response::Code::OK) {
     if (method.compare("GET") == 0) {
@@ -76,6 +75,7 @@ void ConnectionHandler::respond(std::string filename, std::string method,
   } else {
     body = Http::get_error_page(code);
   }
+
   unsigned int body_size = body.size();
   response->set_body(std::move(body));
 
@@ -85,5 +85,5 @@ void ConnectionHandler::respond(std::string filename, std::string method,
   response->add_header("Connection", "close");
 
   std::vector<std::byte> raw_response = response->get_bytearray();
-  Http::send(this->pi->get_fd(), raw_response);
+  Http::send(this->get_fd(), raw_response);
 }
