@@ -18,22 +18,12 @@ DEFINE_int32(port, 7070, "Port on which server is working");
 DEFINE_int32(timeout, 5,
              "Time which server can wait if client doesn't respond");
 
-void custom_prefix(std::ostream &s, const LogMessageInfo &l, void *) {
-  s << "[" << l.severity << " " << std::setw(2) << l.time.day() << "/"
-    << std::setw(2) << 1 + l.time.month() << "/" << std::setw(4)
-    << 1900 + l.time.year() << " " << std::setw(2) << l.time.hour() << ':'
-    << std::setw(2) << l.time.min() << ':' << std::setw(2) << l.time.sec()
-    << " "
-    << "TID: " << syscall(__NR_gettid) << "]";
-}
-
 int main(int argc, char **argv) {
   google::SetVersionString(Version::STRING);
   google::SetUsageMessage("./shttps [options]");
   google::ParseCommandLineFlags(&argc, &argv, true);
 
   google::SetLogDestination(google::INFO, "./logs");
-  google::InitGoogleLogging(argv[0], &custom_prefix, nullptr);
 
   Socket *s = nullptr;
   try {

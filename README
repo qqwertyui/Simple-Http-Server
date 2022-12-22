@@ -16,19 +16,15 @@ For now server can respond with few error codes which are are:
 - 505 HTTP Version Not Supported
 
 1. Requirements:
-- bazel
+- cmake 
 - g++ with c++17 support
-- glog*
-- gflags*
-* - these are downloaded by bazel but I thought it's worth to mention about them.
+- glog
+- gflags
 
 2. Build:
-- git clone https://github.com/qqwertyui/Simple-Http-Server.git && cd Shttps
-- bazel build //:shttps
-
-After that, binary will be placed in {WORKING_DIRECTORY}/bazel-bin/shttps
-You can alternatively run it using bazel:
-- bazel run //:shttps
+- git clone https://github.com/qqwertyui/Simple-Http-Server.git && cd Simple-Http-Server
+- mkdir build && cd build
+- cmake .. && make
 
 3. Usage:
 (Example usage is shown in example.sh)

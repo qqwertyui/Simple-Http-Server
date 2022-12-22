@@ -8,6 +8,7 @@
 
 #include <cstdlib>
 #include <cstring>
+#include <cstddef>
 
 #include <errno.h>
 #include <poll.h>
